@@ -96,7 +96,7 @@ if __name__ == "__main__":
         backend_options={"region": "us-east-1"},
         worker_memory="64 GiB",
         scheduler_options={"idle_timeout": "0.5 hours"},
-        software="coiled/coiled-runtime-0-2-0-py39",
+        software="coiled/coiled-runtime-0-2-0-py310",
     ) as cluster:
         client = Client(cluster)
         clean_data(reprocess=True)
