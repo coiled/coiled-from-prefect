@@ -22,17 +22,26 @@ logger.setLevel(logging.INFO)
 
 
 @task
-def check_for_new_files():
+def check_for_files(intent = "subset"):
     """
     We're going to run this on a daily schedule.  To find files to process incrementally
     we get files from the S3 bucket that match `fhvhv_tripdata_*.parquet` and evaluate
     look at their modification timestamp.  We only want to process files that were
     modified in the last day.
+
+    Parameters
+    ----------
+
+    intent: str: one of subset, or incremental
     """
-    fs = S3FileSystem(anon=True)
+    fs = S3FileSystem()
     yesterday = datetime.now(timezone.utc) - timedelta(days=1)
     files = fs.glob("s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet", detail=True)
-    files = [k for k, v in files.items() if v["LastModified"] > yesterday]
+    if intent == "subset":
+        files = [k for k, _ in files.items()][:5]
+    else:
+        files = [k for k, v in files.items() if v["LastModified"] > yesterday]
+    logger.info(f"Found {len(files)} files")
 
     # Add back the protocol information
     return [f"s3://{f}" for f in files]
@@ -41,10 +50,7 @@ def check_for_new_files():
 @task
 def load_data_from_s3(files_to_load):
     logger.info("Fetching client")
-    if isinstance(files_to_load, str):
-        return dd.read_parquet(files_to_load)
-    else:
-        return dd.read_
+    return dd.read_parquet(files_to_load)
 
 
 @task
@@ -74,11 +80,12 @@ def repartition_and_write_ddf(ddf):
 
 
 @flow(name="clean-files-from-s3", retries=3)
-def clean_data(reprocess: bool = True):
+def clean_data(reprocess: bool = True, intent = "subset"):
     if reprocess is True:
         ddf = load_data_from_s3("s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet")
     else:
-        files_to_process = check_for_new_files()
+        files_to_process = check_for_files(intent=intent)
+        print(files_to_process)
         if files_to_process:
             ddf = load_data_from_s3(files_to_process)
         else:
@@ -88,9 +95,8 @@ def clean_data(reprocess: bool = True):
 
 if __name__ == "__main__":
     logger.info("Start dask cluster on Coiled")
-
     with coiled.Cluster(
-        n_workers=10,
+        n_workers=1,
         account=Secret.load("coiled-team-account").get(),
         name=f"nyc-taxi-uber-lyft-{str(uuid.uuid1())}",
         backend_options={"region": "us-east-1"},
@@ -99,4 +105,4 @@ if __name__ == "__main__":
         software="coiled/coiled-runtime-0-2-0-py310",
     ) as cluster:
         client = Client(cluster)
-        clean_data(reprocess=True)
+        clean_data(reprocess=False, intent="subset")
