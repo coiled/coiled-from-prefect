@@ -8,7 +8,7 @@ import dask.dataframe as dd
 import pyarrow as pa
 from dask.dataframe.utils import make_meta
 from distributed import Client
-from prefect import flow, get_run_logger, task
+from prefect import flow, task
 from prefect.blocks.system import Secret
 from prefect_aws import AwsCredentials
 from prefect_aws.secrets_manager import read_secret
