@@ -2,12 +2,23 @@
 
 This repo provides a starting point for automating a Dask engineering workload using Coiled and Prefect
 
-### In this workload, we create a Prefect Flow that performs the following actions on once daily:
-1.  Creates a Dask cluster from Coiled 
-2.  Grabs a list of parquet files from s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet  
-3. Checks to see if any of those files were written in the last day, using the `LastModified` time as a proxy for when the file was written.  This allows incremental processing of the files
-4. If any files meet this criteria, they are passed to the Dask cluster for processing ane repartitioning, then written to a different private S3 bucket
-5. Tears down the Dask cluster
+### Motivating Problem
+
+New York City recently started open-sourced Uber-Lyft data at: `s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet`
+
+This is a robust dataset for exploration.  Unfortunately, while it is provided as a parquet dataset, the row groups are quite large, which make processing very unwieldly.  Additionally, datatypes between partitions can lead to unexpected errors.  We can leverage this as a motivating example for creating a pure Python data engineering pipeline using Coiled, Dask, and Prefect.
+
+## In this workload, we create two Prefect Flows that perform the following actions once daily:
+
+#### Flow 1
+1.  Selects a list of parquet files from s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet  
+2. Checks to see if any of those files were written in the last day, using the `LastModified` time as a proxy for when the file was written.  This allows incremental processing of the files
+3. If any files meet this criteria, we kick off Flow 2
+
+#### Flow 2
+1.  Spin up a Dask cluster with Coiled
+2.  Pass the list of files to be processed to the Dask cluster.  The files will be loaded into the cluster, we declare datatypes, repartition the files to `128MB` partitions, and write these files to a private S3 bucket.
+3. Tears down the Dask cluster
 
 
 
