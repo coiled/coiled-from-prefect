@@ -36,8 +36,8 @@ def load_and_clean_data(files_to_process, creds):
     logger.info(f"Found creds")
     try:
         # Load the files into a Dask DataFrame & clean them
-        with get_dask_client() as client:
-        # with get_client() as client:
+        # with get_dask_client() as client:
+        with get_client() as client:
 
             ddf = dd.read_parquet(files_to_process)
             logger.info("Loaded dataframe")
@@ -125,5 +125,5 @@ def check_for_files(intent: str):
     if files:
         clean_data(files)
 
-
-check_for_files(intent="test_subset")
+if __name__ == "__main__":
+    check_for_files(intent="test_subset")
