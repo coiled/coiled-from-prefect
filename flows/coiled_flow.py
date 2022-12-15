@@ -12,7 +12,7 @@ from prefect import flow, task, get_run_logger
 from prefect.blocks.system import Secret
 from prefect_aws import AwsCredentials
 from s3fs import S3FileSystem
-from prefect_dask import DaskTaskRunner
+from prefect_dask import DaskTaskRunner, get_dask_client
 from distributed import get_client
 from prefect.exceptions import FailedRun
 
@@ -36,8 +36,9 @@ def load_and_clean_data(files_to_process, creds):
     logger.info(f"Found creds")
     try:
         # Load the files into a Dask DataFrame & clean them
-        # with get_dask_client() as client:
-        with get_client() as client:
+        with get_dask_client() as client:
+        # with get_client() as client:
+
             ddf = dd.read_parquet(files_to_process)
             logger.info("Loaded dataframe")
             ddf['airport_fee'] = ddf['airport_fee'].astype(str)
@@ -114,6 +115,7 @@ def check_for_files(intent: str):
         if intent == "test_subset":
             files = [v['Key'] for _, v in files.items()]
             files = files[0]
+            files = [files]
         else:
             files = [v["Key"] for _, v in files.items() if v["LastModified"] > yesterday]
 
