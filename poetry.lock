@@ -2002,6 +2002,21 @@ prefect = ">=2.6.7"
 dev = ["black", "boto3-stubs (>=1.24.39)", "coverage", "flake8", "interrogate", "isort", "mkdocs", "mkdocs-gen-files", "mkdocs-material", "mkdocstrings-python-legacy", "mock", "moto (>=3.1.16,<=4.0.6)", "mypy", "pillow", "pre-commit", "pytest", "pytest-asyncio", "pytest-lazy-fixture", "types-boto3 (>=1.0.2)"]
 
 [[package]]
+name = "prefect-dask"
+version = "0.2.2"
+description = "Prefect integrations with the Dask execution framework."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+distributed = {version = ">=2022.5.0", markers = "python_version >= \"3.8\""}
+prefect = ">=2.6.0"
+
+[package.extras]
+dev = ["black", "coverage", "flake8", "flaky", "interrogate", "isort", "mkdocs", "mkdocs-gen-files", "mkdocs-material", "mkdocstrings[python]", "mock", "mypy", "pillow", "pre-commit", "pytest", "pytest-asyncio"]
+
+[[package]]
 name = "prometheus-client"
 version = "0.15.0"
 description = "Python client for the Prometheus monitoring system."
@@ -2828,7 +2843,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.10"
-content-hash = "9e62dbdc3dbc11de462a8e96e4a81f04048c2a46ed0a678cd30b9c47e40ebac5"
+content-hash = "bea8aca4f8091cc5b6fea5176fcba76b419b40442fdfea3fc200b7d53470585d"
 
 [metadata.files]
 aiobotocore = [
@@ -4245,6 +4260,10 @@ prefect = [
 prefect-aws = [
     {file = "prefect-aws-0.2.1.tar.gz", hash = "sha256:066e7511d999ab657b7e402ffe6d8b97b33c0b94bce33002d00825f2b2852ae5"},
     {file = "prefect_aws-0.2.1-py3-none-any.whl", hash = "sha256:9f3ebabf1ed6f19d2923625b5531cc6a5f743e4f47316f038cc6ba2ec289d57c"},
+]
+prefect-dask = [
+    {file = "prefect-dask-0.2.2.tar.gz", hash = "sha256:b1ad47b25d8882218036f91f3ad86d244cf4c2994c0de42ecdf3b5a154e865d6"},
+    {file = "prefect_dask-0.2.2-py3-none-any.whl", hash = "sha256:4228a4ad4055a9dc9ab0740de51fc6df0c235ad4b8d71db2e9ee788447d7a7bd"},
 ]
 prometheus-client = [
     {file = "prometheus_client-0.15.0-py3-none-any.whl", hash = "sha256:db7c05cbd13a0f79975592d112320f2605a325969b270a94b71dcabc47b931d2"},

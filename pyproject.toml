@@ -12,6 +12,7 @@ python = "~3.10"
 coiled-runtime = "0.2.0"
 prefect = "^2.7.1"
 prefect-aws = "^0.2.1"
+prefect-dask = "^0.2.2"
 
 
 [tool.poetry.group.dev.dependencies]

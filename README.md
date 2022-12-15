@@ -24,3 +24,15 @@ This repo assumed you have a Coiled account, a Prefect account, are familiar wit
 1.  Clone this repository
 2.  In Prefect, store your credentials to create a `Coiled` cluster as `Prefect Blocks`.  Here we store them as:  `coiled-account`, `coiled-team-account`, and `coiled-token`.
 3.  In Prefect, store your credentials to authenticate to your private S3 bucket as a `Prefect AwsCredentials`.  Here, we label it `prefectexample0`
+
+
+
+#### References  
+[Coiled](https://www.coiled.io)  
+[Dask](https://www.dask.org)  
+[Prefect](https://www.prefect.io/)
+[Working with Dask collections](https://docs.coiled.io/user_guide/examples/prefect-v2.html#working-with-dask-collections)  
+[Prefect-Dask](https://prefecthq.github.io/prefect-dask/#distributing-dask-collections-across-workers)   
+[Workflow Automation with Prefect](https://docs.coiled.io/user_guide/examples/prefect-v2.html#computing-dask-collections)  
+[PrefectHTTPStatus Errors](https://discourse.prefect.io/t/how-can-i-resolve-this-error-prefecthttpstatuserror-on-prefect-2-3-1-dasktaskrunner/1541/5)  
+
