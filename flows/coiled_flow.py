@@ -7,14 +7,13 @@ import coiled
 import dask.dataframe as dd
 import pyarrow as pa
 from dask.dataframe.utils import make_meta
-from distributed import Client
-from prefect import flow, task, get_run_logger
+from distributed import Client, get_client
+from prefect import flow, get_run_logger, task
 from prefect.blocks.system import Secret
-from prefect_aws import AwsCredentials
-from s3fs import S3FileSystem
-from prefect_dask import DaskTaskRunner, get_dask_client
-from distributed import get_client
 from prefect.exceptions import FailedRun
+from prefect_aws import AwsCredentials
+from prefect_dask import DaskTaskRunner, get_dask_client
+from s3fs import S3FileSystem
 
 os.environ["DASK_COILED__ACCOUNT"] = Secret.load("coiled-account").get()
 os.environ["DASK_COILED__TOKEN"] = Secret.load("coiled-token").get()
@@ -31,7 +30,7 @@ def load_and_clean_data(files_to_process, creds):
     """
 
     logger = get_run_logger()
-        # Retrieve AWS credentials to write out the result
+    # Retrieve AWS credentials to write out the result
 
     logger.info(f"Found creds")
     try:
@@ -41,11 +40,13 @@ def load_and_clean_data(files_to_process, creds):
 
             ddf = dd.read_parquet(files_to_process)
             logger.info("Loaded dataframe")
-            ddf['airport_fee'] = ddf['airport_fee'].astype(str)
+            ddf["airport_fee"] = ddf["airport_fee"].astype(str)
 
             ddf = ddf.repartition(partition_size="128MB")
             logger.info("Doing write.")
-            name_func = lambda x: f"fhvhv_tripdata_{str(uuid.uuid1(clock_seq=int(x)))}.parquet"
+            name_func = (
+                lambda x: f"fhvhv_tripdata_{str(uuid.uuid1(clock_seq=int(x)))}.parquet"
+            )
             dd.to_parquet(
                 ddf,
                 "s3://prefect-dask-examples/nyc-taxi-uber-lyft/split_files.parquet",
@@ -80,8 +81,8 @@ def log_summary(x):
             "worker_memory": "64 GiB",
             "scheduler_options": {"idle_timeout": "0.5 hours"},
             "package_sync": True,
-        }
-    )
+        },
+    ),
 )
 def clean_data(files_to_process):
     logger = get_run_logger()
@@ -107,23 +108,26 @@ def check_for_files(intent: str):
     logger = get_run_logger()
     if intent == "reprocess":
         files = "s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet"
-    
+
     else:
         fs = S3FileSystem()
         yesterday = datetime.now(timezone.utc) - timedelta(days=1)
         files = fs.glob("s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet", detail=True)
         if intent == "test_subset":
-            files = [v['Key'] for _, v in files.items()]
+            files = [v["Key"] for _, v in files.items()]
             files = files[0]
             files = [files]
         else:
-            files = [v["Key"] for _, v in files.items() if v["LastModified"] > yesterday]
+            files = [
+                v["Key"] for _, v in files.items() if v["LastModified"] > yesterday
+            ]
 
         # Add back the protocol
         files = [f"s3://{f}" for f in files]
         logger.info(f"Found {len(files)} files that are:  {files}")
     if files:
         clean_data(files)
+
 
 if __name__ == "__main__":
     check_for_files(intent="test_subset")
