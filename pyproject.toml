@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "coiled-from-prefect"
+version = "0.1.0"
+description = "Run a data engineering job on Coiled from Prefect"
+authors = ["Greg Hayes <hayesgb@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "coiled_from_prefect"}]
+
+[tool.poetry.dependencies]
+python = "~3.10"
+coiled-runtime = "0.2.0"
+prefect = "^2.7.1"
+prefect-aws = "^0.2.1"
+prefect-dask = "^0.2.2"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.12.0"
+isort = "^5.11.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
