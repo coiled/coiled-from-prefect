@@ -22,13 +22,36 @@ logger.setLevel(logging.INFO)
 
 
 @task
-def load_and_clean_data(files_to_process, creds):
+def load_and_clean_data(files_to_process, intent, creds):
     """
     Retrieve AWS Credentials from a Prefect Block, do some basic cleaning,
     repartition the data and write it to a private S3 bucket
+
+    Parameters
+    ----------
+    :param files_to_process: One of list or string
+    :param intent: Either reprocess, test_subset, or ""
+    :param creds: AWS Credentials
+
     """
 
     logger = get_run_logger()
+
+    storage_options={
+                        "key": creds.aws_access_key_id,
+                        "secret": creds.aws_secret_access_key.get_secret_value(),
+                        "client_kwargs": {"region_name": "us-east-2"},
+                    }
+
+    if intent == "reprocess":
+        fs = S3FileSystem(**storage_options)
+        fs.rm("s3://prefect-dask-examples/nyc-uber-lyft/processed_files/", recursive=True)
+
+    if intent == "test_subset":
+        fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/processed_files/run-{str(uuid.uuid1())}.parquet"
+    else:
+        fpath=f"s3://prefect-dask-examples/nyc-uber-lyft/test_pipeline/run-{str(uuid.uuid1())}.parquet"
+
 
     try:
         # Read the files into a Dask DataFrame & preprocess
@@ -47,12 +70,8 @@ def load_and_clean_data(files_to_process, creds):
             )
             dd.to_parquet(
                 ddf,
-                "s3://prefect-dask-examples/nyc-taxi-uber-lyft/split_files.parquet",
-                storage_options={
-                    "key": creds.aws_access_key_id,
-                    "secret": creds.aws_secret_access_key.get_secret_value(),
-                    "client_kwargs": {"region_name": "us-east-2"},
-                },
+                fpath,
+                storage_options=storage_options,
                 name_function=name_func,
             )
         logger.info("Completed write operation")
@@ -82,27 +101,32 @@ def log_summary(x):
         },
     ),
 )
-def clean_data(files_to_process):
+def clean_data(files_to_process, intent):
     logger = get_run_logger()
     logger.info("Clean data")
     creds = AwsCredentials.load("prefectexample0")
-    prefect_future = load_and_clean_data.submit(files_to_process, creds)
+    prefect_future = load_and_clean_data.submit(files_to_process, intent, creds)
     return prefect_future.result()
 
 
 @flow(name="Check for files")
 def check_for_files(intent: str):
     """
-    We're going to run this on a daily schedule.  To find files to process incrementally
-    we get files from the S3 bucket that match `fhvhv_tripdata_*.parquet` and evaluate
-    look at their modification timestamp.  We only want to process files that were
-    modified in the last day.
+    We're going to run this on a weekly schedule.  Our intention is, as a default behavior,
+    to find files in the S3 bucket that match `fhvhv_tripdata_*.parquet` and evaluate
+    their modification timestamp.  We only want to process files that were
+    modified in the last seven days.
+
+    We also have the option to either: a) `reprocess` the entire dataset, which will delete
+    the existing data and rewrite it, or b) `test_subset`, which will process only the first file 
+    in the list.  This is for testing only.
 
     Parameters
     ----------
 
-    intent: str: one of subset, or incremental
+    intent: str: one of `test_subset`, `reprocess`, or ""
     """
+
     logger = get_run_logger()
     if intent == "reprocess":
         files = "s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet"
@@ -124,7 +148,9 @@ def check_for_files(intent: str):
         files = [f"s3://{f}" for f in files]
         logger.info(f"Found {len(files)} files that are:  {files}")
     if files:
-        clean_data(files)
+        clean_data(files, intent=intent)
+    else:
+        logger.info("No files found to process.  End job.")
 
 
 if __name__ == "__main__":
