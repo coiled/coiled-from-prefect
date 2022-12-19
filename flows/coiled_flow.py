@@ -46,7 +46,8 @@ def load_and_clean_data(files_to_process, intent, creds):
         try:
             fs = S3FileSystem(**storage_options)
             fs.rm(
-                "s3://prefect-dask-examples/nyc-uber-lyft/processed_files/", recursive=True
+                "s3://prefect-dask-examples/nyc-uber-lyft/processed_files/",
+                recursive=True,
             )
         except FileNotFoundError:
             logger.info("Filepath does not exist.  Skipping delete.")
@@ -94,7 +95,7 @@ def log_summary(x):
     task_runner=DaskTaskRunner(
         cluster_class="coiled.Cluster",
         cluster_kwargs={
-            "n_workers": 5,
+            "n_workers": 10,
             "account": Secret.load("coiled-team-account").get(),
             "name": f"nyc-taxi-uber-lyft-{str(uuid.uuid1())}",
             "backend_options": {"region": "us-east-1"},
