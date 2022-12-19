@@ -32,26 +32,29 @@ def load_and_clean_data(files_to_process, intent, creds):
     :param files_to_process: One of list or string
     :param intent: Either reprocess, test_subset, or ""
     :param creds: AWS Credentials
-
     """
 
     logger = get_run_logger()
 
-    storage_options={
-                        "key": creds.aws_access_key_id,
-                        "secret": creds.aws_secret_access_key.get_secret_value(),
-                        "client_kwargs": {"region_name": "us-east-2"},
-                    }
+    storage_options = {
+        "key": creds.aws_access_key_id,
+        "secret": creds.aws_secret_access_key.get_secret_value(),
+        "client_kwargs": {"region_name": "us-east-2"},
+    }
 
     if intent == "reprocess":
-        fs = S3FileSystem(**storage_options)
-        fs.rm("s3://prefect-dask-examples/nyc-uber-lyft/processed_files/", recursive=True)
+        try:
+            fs = S3FileSystem(**storage_options)
+            fs.rm(
+                "s3://prefect-dask-examples/nyc-uber-lyft/processed_files/", recursive=True
+            )
+        except FileNotFoundError:
+            logger.info("Filepath does not exist.  Skipping delete.")
 
     if intent == "test_subset":
         fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/processed_files/run-{str(uuid.uuid1())}.parquet"
     else:
-        fpath=f"s3://prefect-dask-examples/nyc-uber-lyft/test_pipeline/run-{str(uuid.uuid1())}.parquet"
-
+        fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/test_pipeline/run-{str(uuid.uuid1())}.parquet"
 
     try:
         # Read the files into a Dask DataFrame & preprocess
@@ -118,7 +121,7 @@ def check_for_files(intent: str):
     modified in the last seven days.
 
     We also have the option to either: a) `reprocess` the entire dataset, which will delete
-    the existing data and rewrite it, or b) `test_subset`, which will process only the first file 
+    the existing data and rewrite it, or b) `test_subset`, which will process only the first file
     in the list.  This is for testing only.
 
     Parameters
