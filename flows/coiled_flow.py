@@ -5,14 +5,13 @@ from datetime import datetime, timedelta, timezone
 
 import coiled
 import dask.dataframe as dd
-import pyarrow as pa
 from dask.dataframe.utils import make_meta
-from distributed import Client, get_client
+from distributed import get_client
 from prefect import flow, get_run_logger, task
 from prefect.blocks.system import Secret
 from prefect.exceptions import FailedRun
 from prefect_aws import AwsCredentials
-from prefect_dask import DaskTaskRunner, get_dask_client
+from prefect_dask import DaskTaskRunner
 from s3fs import S3FileSystem
 
 os.environ["DASK_COILED__ACCOUNT"] = Secret.load("coiled-account").get()
@@ -30,20 +29,19 @@ def load_and_clean_data(files_to_process, creds):
     """
 
     logger = get_run_logger()
-    # Retrieve AWS credentials to write out the result
 
-    logger.info(f"Found creds")
     try:
-        # Load the files into a Dask DataFrame & clean them
-        # with get_dask_client() as client:
+        # Read the files into a Dask DataFrame & preprocess
         with get_client() as client:
-
             ddf = dd.read_parquet(files_to_process)
             logger.info("Loaded dataframe")
             ddf["airport_fee"] = ddf["airport_fee"].astype(str)
-
             ddf = ddf.repartition(partition_size="128MB")
             logger.info("Doing write.")
+
+            # We provide a unique filename for each partition in place of Dask's
+            # standard `part-i-` convention.  This is to avoid collisions during
+            # incremental processing.
             name_func = (
                 lambda x: f"fhvhv_tripdata_{str(uuid.uuid1(clock_seq=int(x)))}.parquet"
             )
@@ -111,7 +109,7 @@ def check_for_files(intent: str):
 
     else:
         fs = S3FileSystem()
-        yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+        last_week = datetime.now(timezone.utc) - timedelta(days=7)
         files = fs.glob("s3://nyc-tlc/trip data/fhvhv_tripdata_*.parquet", detail=True)
         if intent == "test_subset":
             files = [v["Key"] for _, v in files.items()]
@@ -119,10 +117,10 @@ def check_for_files(intent: str):
             files = [files]
         else:
             files = [
-                v["Key"] for _, v in files.items() if v["LastModified"] > yesterday
+                v["Key"] for _, v in files.items() if v["LastModified"] > last_week
             ]
 
-        # Add back the protocol
+        # Add the protocol back to the filename
         files = [f"s3://{f}" for f in files]
         logger.info(f"Found {len(files)} files that are:  {files}")
     if files:
