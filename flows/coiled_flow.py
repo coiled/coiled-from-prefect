@@ -5,9 +5,9 @@ from datetime import datetime, timedelta, timezone
 
 import coiled
 import dask.dataframe as dd
+import pandas as pd
 from dask.dataframe.utils import make_meta
 from distributed import get_client
-import pandas as pd
 from prefect import flow, get_run_logger, task
 from prefect.blocks.system import Secret
 from prefect.exceptions import FailedRun
@@ -23,7 +23,7 @@ logger.setLevel(logging.INFO)
 
 
 @task
-def load_and_clean_data(files_to_process, intent, creds):
+def load_and_clean_data(files_to_process, intent, creds, first_run):
     """
     Retrieve AWS Credentials from a Prefect Block, do some basic cleaning,
     repartition the data and write it to a private S3 bucket
@@ -47,7 +47,7 @@ def load_and_clean_data(files_to_process, intent, creds):
     overwrite = False
     fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/processed_files.parquet"
     if intent == "reprocess":
-        overwrite = False
+        overwrite = True
 
     elif intent == "test_subset":
         fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/test_pipeline.parquet"
@@ -70,7 +70,7 @@ def load_and_clean_data(files_to_process, intent, creds):
                     conversions[column] = "string[pyarrow]"
                 if dtype == "float64":
                     conversions[column] = "float32"
-                if dtype == "int64": 
+                if dtype == "int64":
                     conversions[column] = "int32"
                 if "flag" in column:
                     conversions[column] = yes_no
@@ -84,6 +84,10 @@ def load_and_clean_data(files_to_process, intent, creds):
             name_func = (
                 lambda x: f"fhvhv_tripdata_{str(uuid.uuid1(clock_seq=int(x)))}.parquet"
             )
+            if first_run is True:
+                overwrite = False
+                append = False
+
             dd.to_parquet(
                 ddf,
                 fpath,
@@ -128,7 +132,7 @@ def clean_data(files_to_process, intent):
 
 
 @flow(name="Check for files")
-def check_for_files(intent: str):
+def check_for_files(intent: str, first_run: bool):
     """
     We're going to run this on a weekly schedule.  Our intention is, as a default behavior,
     to find files in the S3 bucket that match `fhvhv_tripdata_*.parquet` and evaluate
@@ -166,10 +170,10 @@ def check_for_files(intent: str):
         files = [f"s3://{f}" for f in files]
         logger.info(f"Found {len(files)} files that are:  {files}")
     if files:
-        clean_data(files, intent=intent)
+        clean_data(files, intent=intent, first_run=first_run)
     else:
         logger.info("No files found to process.  End job.")
 
 
 if __name__ == "__main__":
-    check_for_files(intent="test_subset")
+    check_for_files(intent="test_subset", first_run=False)
