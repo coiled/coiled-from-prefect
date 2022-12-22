@@ -7,6 +7,7 @@ import coiled
 import dask.dataframe as dd
 from dask.dataframe.utils import make_meta
 from distributed import get_client
+import pandas as pd
 from prefect import flow, get_run_logger, task
 from prefect.blocks.system import Secret
 from prefect.exceptions import FailedRun
@@ -42,27 +43,38 @@ def load_and_clean_data(files_to_process, intent, creds):
         "client_kwargs": {"region_name": "us-east-2"},
     }
 
+    append = False
+    overwrite = False
+    fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/processed_files.parquet"
     if intent == "reprocess":
-        try:
-            fs = S3FileSystem(**storage_options)
-            fs.rm(
-                "s3://prefect-dask-examples/nyc-uber-lyft/processed_files/",
-                recursive=True,
-            )
-        except FileNotFoundError:
-            logger.info("Filepath does not exist.  Skipping delete.")
+        overwrite = False
 
-    if intent == "test_subset":
-        fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/processed_files/run-{str(uuid.uuid1())}.parquet"
+    elif intent == "test_subset":
+        fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/test_pipeline.parquet"
+        overwrite = True
+
     else:
-        fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/test_pipeline/run-{str(uuid.uuid1())}.parquet"
+        append = True
 
     try:
         # Read the files into a Dask DataFrame & preprocess
         with get_client() as client:
             ddf = dd.read_parquet(files_to_process)
             logger.info("Loaded dataframe")
-            ddf["airport_fee"] = ddf["airport_fee"].astype(str)
+
+            # Declare the datatypes
+            yes_no = pd.CategoricalDtype(categories=["Y", "N"])
+            conversions = {}
+            for column, dtype in ddf.dtypes.items():
+                if dtype == "object":
+                    conversions[column] = "string[pyarrow]"
+                if dtype == "float64":
+                    conversions[column] = "float32"
+                if dtype == "int64": 
+                    conversions[column] = "int32"
+                if "flag" in column:
+                    conversions[column] = yes_no
+            ddf = ddf.astype(conversions)
             ddf = ddf.repartition(partition_size="128MB")
             logger.info("Doing write.")
 
@@ -77,6 +89,8 @@ def load_and_clean_data(files_to_process, intent, creds):
                 fpath,
                 storage_options=storage_options,
                 name_function=name_func,
+                overwrite=overwrite,
+                append=append,
             )
         logger.info("Completed write operation")
 
