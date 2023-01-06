@@ -25,7 +25,7 @@ This is a robust dataset for exploration.  Unfortunately, while it is provided a
 ### Getting Started
 This repo assumed you have a Coiled account, a Prefect account, are familiar with the following concepts, and have access to the following access credentials:
 
-- Coiled Accounts, Teams, and Tokens 
+- Coiled Users, Teams, and Tokens 
 - Prefect Cloud
 - Prefect Flows and Tasks
 - Prefect Blocks
@@ -33,7 +33,7 @@ This repo assumed you have a Coiled account, a Prefect account, are familiar wit
 
 
 1.  Clone this repository
-2.  In Prefect, store your credentials to create a `Coiled` cluster as `Prefect Blocks`.  Here we store them as:  `coiled-account`, `coiled-team-account`, and `coiled-token`.
+2.  In Prefect, store your credentials to create a `Coiled` cluster as `Prefect Blocks`.  Here we store them as:  `coiled-user`, `coiled-account` (your team), and `coiled-token`.
 3.  In Prefect, store your credentials to authenticate to your private S3 bucket as a `Prefect AwsCredentials`.  Here, we label it `prefectexample0`
 
 
