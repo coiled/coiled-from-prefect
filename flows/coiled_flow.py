@@ -46,16 +46,16 @@ def load_and_clean_data(files_to_process, intent, creds):
         try:
             fs = S3FileSystem(**storage_options)
             fs.rm(
-                "s3://prefect-dask-examples/nyc-uber-lyft/processed_files/",
+                "s3://coiled-datasets/prefect-dask/nyc-uber-lyft/processed_files/",
                 recursive=True,
             )
         except FileNotFoundError:
             logger.info("Filepath does not exist.  Skipping delete.")
 
     if intent == "test_subset":
-        fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/processed_files/run-{str(uuid.uuid1())}.parquet"
+        fpath = f"s3://coiled-datasets/prefect-dask/nyc-uber-lyft/test_pipeline/run-{str(uuid.uuid1())}.parquet"
     else:
-        fpath = f"s3://prefect-dask-examples/nyc-uber-lyft/test_pipeline/run-{str(uuid.uuid1())}.parquet"
+        fpath = f"s3://coiled-datasets/prefect-dask/nyc-uber-lyft/processed_data.parquet"
 
     try:
         # Read the files into a Dask DataFrame & preprocess
@@ -76,7 +76,8 @@ def load_and_clean_data(files_to_process, intent, creds):
                 if "flag" in column:
                     conversions[column] = yes_no
             ddf = ddf.astype(conversions)
-            logger.info("Doing write.")
+            logger.info("Repartition and write.")
+            ddf = ddf.repartition(partition_size="100MB")
 
             # We provide a unique filename for each partition in place of Dask's
             # standard `part-i-` convention.  This is to avoid collisions during
