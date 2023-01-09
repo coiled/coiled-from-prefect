@@ -13,6 +13,7 @@ coiled-runtime = "0.2.0"
 prefect = "^2.7.1"
 prefect-aws = "^0.2.1"
 prefect-dask = "^0.2.2"
+coiled = "0.2.59"
 
 
 [tool.poetry.group.dev.dependencies]
