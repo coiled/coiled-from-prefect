@@ -109,7 +109,7 @@ def log_summary(x):
         cluster_class="coiled.Cluster",
         cluster_kwargs={
             "n_workers": 10,
-            "account": Secret.load("coiled-team-account").get(),
+            "account": Secret.load("coiled-account").get(),
             "name": f"nyc-taxi-uber-lyft-{str(uuid.uuid1())}",
             "backend_options": {"region": "us-east-1"},
             "worker_memory": "64 GiB",
